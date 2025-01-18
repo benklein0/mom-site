@@ -1,0 +1,38 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null && 
+        (request.auth.token.email == 'cvklein@optonline.net' || 
+         request.auth.token.email == 'camillasbuckles@gmail.com');
+    }
+
+    // Allow anyone to read products, only admins can write
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // Allow authenticated users to read and write their own reviews
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // Allow authenticated users to read and write their own orders
+    // Allow admin to read all orders
+    match /orders/{orderId} {
+      allow read: if request.auth != null && (
+        request.auth.uid == resource.data.userId || 
+        isAdmin()
+      );
+      allow write: if request.auth != null;
+    }
+    
+    // Allow authenticated users to read and write their own user data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+} 
